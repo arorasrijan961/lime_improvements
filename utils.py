@@ -1,4 +1,28 @@
 import numpy as np
+
+def sample(num, shape):
+    n=shape[0]
+    m=shape[1]
+    
+    result=np.zeros((num, m))
+    for i in range(num):
+        result[i]=np.random.normal((m, ))
+        
+    return result    
+
+def get_weight(x, samples, width=None):
+    n=samples.shape[0]
+    m=samples.shape[1]
+    if(width==None):
+        width=np.sqrt(n)*0.75
+    result=np.zeros((n,n))
+    for i in range(n):
+        norm=np.linalg.norm(x-samples[i])
+        result[i][i]=np.exp(-norm/(width**2))
+        
+    return result
+
+
 class LinearRegression:
     
     def __init__(self, type, L, alpha):
@@ -98,3 +122,4 @@ class ISTA:
 
     def predict(self, X_test):
         return np.matmul(X_test, self.theta)
+    
