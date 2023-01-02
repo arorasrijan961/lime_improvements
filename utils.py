@@ -1,6 +1,7 @@
 import numpy as np
 
 def sample(num, shape):
+    
     n=shape[0]
     m=shape[1]
     
@@ -14,11 +15,11 @@ def get_weight(x, samples, width=None):
     n=samples.shape[0]
     m=samples.shape[1]
     if(width==None):
-        width=np.sqrt(n)*0.75
-    result=np.zeros((n,n))
+        width=np.sqrt(m)*0.75
+    result=np.zeros((n,))
     for i in range(n):
         norm=np.linalg.norm(x-samples[i])
-        result[i][i]=np.exp(-norm/(width**2))
+        result[i]=np.sqrt(np.exp(-(norm)**2/(width**2)))
         
     return result
 
@@ -85,6 +86,7 @@ class ISTA:
         self.L=L
         self.theta=None
         
+        
     def soft(self, x, T):
         if(x<=-T):
             return x+T
@@ -123,3 +125,58 @@ class ISTA:
     def predict(self, X_test):
         return np.matmul(X_test, self.theta)
     
+class Modified_ISTA:
+    def __init__(self, L, p, epsilon):
+        self.L=L
+        self.theta=None
+        self.p=p
+        self.epsilon=epsilon
+        
+    def soft(self, x, T):
+        if(x<=-T):
+            return x+T
+        elif(abs(x)<=T):
+            return 0
+        else:
+            return x-T
+        
+    def soft_vector(self, theta, T):
+        new_theta=np.copy(theta)
+        # print(new_theta.shape)
+        for i in range(new_theta.shape[0]):
+            new_theta[i][0]=self.soft(theta[i][0], T[1])
+        return new_theta
+        
+    def init_weights(self, X_train):
+        self.theta=np.zeros((X_train.shape[1], 1))
+        v, w=np.linalg.eig(np.matmul(X_train.T, X_train))
+        self.alpha=np.amax(v)
+
+    def pnorm(self):
+        result=[]
+        for i in range(self.theta.shape[0]):
+            result.append((abs(self.theta[i][0])+self.epsilon)**(self.p-1))
+            
+        return result
+    
+    def update(self, X_train, Y_train):
+        temp=self.theta+(np.matmul(X_train.T, (Y_train-np.matmul(X_train, self.theta))))/self.alpha
+        # print(self.theta.shape)
+        pnorm=self.pnorm()
+        l=self.pnorm()
+        for i in range(len(l)):
+            l[i]=self.L*l[i]/(2*self.alpha)
+        self.theta=self.soft_vector(temp, l)
+        # print(self.theta)
+        # print(self.theta.shape)
+        
+    def fit(self, X_train, Y_train, iter):
+        self.init_weights(X_train)
+        for i in range(iter):
+            self.update(X_train, Y_train)
+            
+    def get_weight(self):
+        return self.theta
+
+    def predict(self, X_test):
+        return np.matmul(X_test, self.theta)
